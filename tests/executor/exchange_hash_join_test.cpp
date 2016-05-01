@@ -101,9 +101,9 @@ namespace peloton {
       bool table_created_ = false;
     };
     //    bool ExchangeHashJoinTests::table_created_ = false;
-    size_t BuildTestTableUtil::tile_group_size = 5;
-    size_t BuildTestTableUtil::left_table_tile_group_count = 3;
-    size_t BuildTestTableUtil::right_table_tile_group_count = 2;
+    size_t BuildTestTableUtil::tile_group_size = 1000;
+    size_t BuildTestTableUtil::left_table_tile_group_count = 100;
+    size_t BuildTestTableUtil::right_table_tile_group_count = 102;
 
 
     std::shared_ptr<const peloton::catalog::Schema> CreateJoinSchema() {
@@ -712,6 +712,7 @@ namespace peloton {
       }
     }
 
+    /*
 TEST_F(ExchangeHashJoinTests, BasicTest) {
 // Go over all join algorithms
 BuildTestTableUtil join_test;
@@ -831,25 +832,19 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
     }
   }
 }
+*/
 
 
-/*
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
   join_test.CreateTestTable();
 
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest);
+//  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
 
-//  for (auto join_algorithm : join_algorithms) {
-//    LOG_INFO("JOIN ALGORITHM :: %s",
-//             PlanNodeTypeToString(join_algorithm).c_str());
-
-//    join_test.ExecuteJoinTest(join_algorithm, JOIN_TYPE_OUTER, BASIC_TEST);
-//  }
 }
-*/
+
   /*
 TEST_F(ExchangeHashJoinTests, SpeedTest) {
   BuildTestTableUtil join_test;
