@@ -72,6 +72,11 @@ class ExecutorTestsUtil {
                             storage::DataTable *table, int num_rows,
                             bool mutate, bool random, bool group_by);
 
+  static void PopulateTableForParallelTest(__attribute__((unused))
+                            concurrency::Transaction *transaction,
+                            storage::DataTable *table, int num_rows,
+                            bool left);
+
   static void PopulateTiles(std::shared_ptr<storage::TileGroup> tile_group,
                             int num_rows);
 

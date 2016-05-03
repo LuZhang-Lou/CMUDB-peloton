@@ -70,16 +70,44 @@ namespace peloton {
         auto txn = txn_manager.BeginTransaction();
         left_table_.reset(
           ExecutorTestsUtil::CreateTable(tile_group_size));
-        ExecutorTestsUtil::PopulateTable(
+//        ExecutorTestsUtil::PopulateTable(
+//          txn, left_table_.get(), tile_group_size * left_table_tile_group_count,
+//          false, false, false);
+        ExecutorTestsUtil::PopulateTableForParallelTest(
           txn, left_table_.get(), tile_group_size * left_table_tile_group_count,
-          false, false, false);
+          true);
 
-        // Right table has 2 tile groups
+
         right_table_.reset(
           ExecutorTestsUtil::CreateTable(tile_group_size));
-        ExecutorTestsUtil::PopulateTable(
+//        ExecutorTestsUtil::PopulateTable(
+//          txn, right_table_.get(), tile_group_size * right_table_tile_group_count,
+//          false, false, false);
+        ExecutorTestsUtil::PopulateTableForParallelTest(
           txn, right_table_.get(), tile_group_size * right_table_tile_group_count,
-          false, false, false);
+          false);
+
+        /********Checking populate Correctness********/
+        for (size_t i = 0; i < left_table_->GetTileGroupCount() &&
+                           i < right_table_->GetTileGroupCount(); ++i){
+         auto left_tile_group = left_table_->GetTileGroup(i);
+         auto right_tile_group = right_table_->GetTileGroup(i);
+         oid_t active_tuple_count = left_tile_group->GetActiveTupleCount();
+         printf("left_active:%u, right_active:%u\n", active_tuple_count,
+                 right_tile_group->GetActiveTupleCount());
+//         assert(active_tuple_count == right_tile_group->GetActiveTupleCount());
+         for (oid_t tuple_id = 0; tuple_id < active_tuple_count; tuple_id++) {
+           expression::ContainerTuple<storage::TileGroup> left_tuple(
+               left_tile_group.get(), tuple_id);
+           int left_value = left_tuple.GetValue(1).GetIntegerForTestsOnly();
+           expression::ContainerTuple<storage::TileGroup> right_tuple(
+               right_tile_group.get(), tuple_id);
+           int right_value = right_tuple.GetValue(1).GetIntegerForTestsOnly();
+           printf("testing --------- left[1]:%d \t right[1]:%d\n", left_value, right_value);
+         }
+        }
+
+        /********Checking populate Correctness End********/
 
         txn_manager.CommitTransaction();
 
@@ -101,9 +129,9 @@ namespace peloton {
       bool table_created_ = false;
     };
     //    bool ExchangeHashJoinTests::table_created_ = false;
-    size_t BuildTestTableUtil::tile_group_size = 1000;
-    size_t BuildTestTableUtil::left_table_tile_group_count = 100;
-    size_t BuildTestTableUtil::right_table_tile_group_count = 102;
+    size_t BuildTestTableUtil::tile_group_size = 5;
+    size_t BuildTestTableUtil::left_table_tile_group_count = 3;
+    size_t BuildTestTableUtil::right_table_tile_group_count = 2;
 
 
     std::shared_ptr<const peloton::catalog::Schema> CreateJoinSchema() {
@@ -457,6 +485,8 @@ namespace peloton {
         }
       }else if (join_test_type == LargeTableCorrectnessTest) {
         // Check output
+        printf("real result_tuple_count:%u, tuples_with_null:%u\n",
+                result_tuple_count, tuples_with_null);
         switch (join_type) {
           case JOIN_TYPE_INNER:
             EXPECT_EQ(result_tuple_count, 10);
@@ -840,7 +870,7 @@ TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   BuildTestTableUtil join_test;
   join_test.CreateTestTable();
 
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest);
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 1);
 //  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
 
 }
