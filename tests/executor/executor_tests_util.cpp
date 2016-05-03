@@ -242,14 +242,36 @@ void ExecutorTestsUtil::PopulateTableForParallelTest(__attribute__((unused))
         0, ValueFactory::GetIntegerValue(PopulatedValue(populate_value, 0)),
         testing_pool);
 
-    if (populate_value == 5){
-    tuple.SetValue(
-        1, ValueFactory::GetIntegerValue(PopulatedValue(populate_value, left?1:2)),
-            testing_pool);
-    } else {
+//    if (populate_value % 5 == 0){
+//      if (populate_value % 15 == 0){
+//        tuple.SetValue(
+//          1, ValueFactory::GetIntegerValue(PopulatedValue(populate_value, left?2:1)),
+//              testing_pool);
+//       }else {
+//        tuple.SetValue(
+//          1, ValueFactory::GetIntegerValue(PopulatedValue(populate_value, left?1:2)),
+//              testing_pool);
+//       }
+//    } else {
       tuple.SetValue(
-          1, ValueFactory::GetIntegerValue(PopulatedValue(populate_value, 1)),
-              testing_pool);
+        1, ValueFactory::GetIntegerValue(PopulatedValue(populate_value, 1)),
+            testing_pool);
+//    }
+    if ((populate_value % 10 == 0 || (populate_value-1) % 10 == 0)
+          && left){
+     tuple.SetValue(
+       1, ValueFactory::GetIntegerValue(11),
+         testing_pool);
+    }
+    if (populate_value < 3 && !left){
+      tuple.SetValue(
+        1, ValueFactory::GetIntegerValue(11),
+          testing_pool);
+    }
+    if (populate_value == 4 && !left){
+      tuple.SetValue(
+        1, ValueFactory::GetIntegerValue(19),
+          testing_pool);
     }
 
     tuple.SetValue(2, ValueFactory::GetDoubleValue(PopulatedValue(

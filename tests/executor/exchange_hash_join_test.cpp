@@ -58,10 +58,14 @@ namespace peloton {
                            oid_t join_test_type, bool set_workload = false,
                             size_t workload = 150);
 
-      void CreateTestTable(){
+      void CreateTestTable(size_t group_size, size_t left_group_num, size_t right_group_num){
         if (table_created_){
           return;
         }
+        tile_group_size = group_size;
+        left_table_tile_group_count = left_group_num;
+        right_table_tile_group_count = right_group_num;
+
         printf("CreateTestTable...\n");
         auto &txn_manager = concurrency::TransactionManagerFactory::GetInstance();
 
@@ -70,22 +74,16 @@ namespace peloton {
         auto txn = txn_manager.BeginTransaction();
         left_table_.reset(
           ExecutorTestsUtil::CreateTable(tile_group_size));
-//        ExecutorTestsUtil::PopulateTable(
-//          txn, left_table_.get(), tile_group_size * left_table_tile_group_count,
-//          false, false, false);
-        ExecutorTestsUtil::PopulateTableForParallelTest(
-          txn, left_table_.get(), tile_group_size * left_table_tile_group_count,
-          true);
+          ExecutorTestsUtil::PopulateTableForParallelTest(
+            txn, left_table_.get(),
+            tile_group_size * left_table_tile_group_count, true);
 
 
         right_table_.reset(
           ExecutorTestsUtil::CreateTable(tile_group_size));
-//        ExecutorTestsUtil::PopulateTable(
-//          txn, right_table_.get(), tile_group_size * right_table_tile_group_count,
-//          false, false, false);
-        ExecutorTestsUtil::PopulateTableForParallelTest(
-          txn, right_table_.get(), tile_group_size * right_table_tile_group_count,
-          false);
+          ExecutorTestsUtil::PopulateTableForParallelTest(
+            txn, right_table_.get(),
+            tile_group_size * right_table_tile_group_count, false);
 
         /********Checking populate Correctness********/
         for (size_t i = 0; i < left_table_->GetTileGroupCount() &&
@@ -485,27 +483,27 @@ namespace peloton {
         }
       }else if (join_test_type == LargeTableCorrectnessTest) {
         // Check output
-        printf("real result_tuple_count:%u, tuples_with_null:%u\n",
+        printf("RESULT ------ real result_tuple_count:%u, tuples_with_null:%u\n",
                 result_tuple_count, tuples_with_null);
         switch (join_type) {
           case JOIN_TYPE_INNER:
-            EXPECT_EQ(result_tuple_count, 10);
+            EXPECT_EQ(result_tuple_count, 55998);
             EXPECT_EQ(tuples_with_null, 0);
             break;
 
           case JOIN_TYPE_LEFT:
-            EXPECT_EQ(result_tuple_count, 15);
-            EXPECT_EQ(tuples_with_null, 5);
+            EXPECT_EQ(result_tuple_count, 55998+28002);
+            EXPECT_EQ(tuples_with_null, 28002);
             break;
 
           case JOIN_TYPE_RIGHT:
-            EXPECT_EQ(result_tuple_count, 10);
-            EXPECT_EQ(tuples_with_null, 0);
+            EXPECT_EQ(result_tuple_count, 55998+4999);
+            EXPECT_EQ(tuples_with_null, 4999);
             break;
 
           case JOIN_TYPE_OUTER:
-            EXPECT_EQ(result_tuple_count, 15);
-            EXPECT_EQ(tuples_with_null, 5);
+            EXPECT_EQ(result_tuple_count, 55998+28002+4999);
+            EXPECT_EQ(tuples_with_null, 28002+4999);
             break;
 
           default:
@@ -868,10 +866,12 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable();
+  join_test.CreateTestTable(1000, 60, 25);
 
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 1);
-//  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest, true, 10);
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 10);
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_LEFT, LargeTableCorrectnessTest, true, 10);
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_OUTER, LargeTableCorrectnessTest, true, 10);
 
 }
 
