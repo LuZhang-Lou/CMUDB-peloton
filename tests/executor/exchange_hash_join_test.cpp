@@ -58,7 +58,8 @@ namespace peloton {
                            oid_t join_test_type, bool set_workload = false,
                             size_t workload = 150);
 
-      void CreateTestTable(size_t group_size, size_t left_group_num, size_t right_group_num){
+      void CreateTestTable(size_t group_size, size_t left_group_num,
+                            size_t right_group_num, bool is_large_para_test){
         if (table_created_){
           return;
         }
@@ -74,16 +75,29 @@ namespace peloton {
         auto txn = txn_manager.BeginTransaction();
         left_table_.reset(
           ExecutorTestsUtil::CreateTable(tile_group_size));
-          ExecutorTestsUtil::PopulateTableForParallelTest(
-            txn, left_table_.get(),
-            tile_group_size * left_table_tile_group_count, true);
 
+         if (is_large_para_test){
+           ExecutorTestsUtil::PopulateTableForParallelTest(
+                      txn, left_table_.get(),
+                      tile_group_size * left_table_tile_group_count, true);
+         }else{
+           ExecutorTestsUtil::PopulateTable(
+                  txn, left_table_.get(), tile_group_size * left_table_tile_group_count,
+                  false, false, false);
+         }
 
         right_table_.reset(
           ExecutorTestsUtil::CreateTable(tile_group_size));
+
+        if (is_large_para_test){
           ExecutorTestsUtil::PopulateTableForParallelTest(
             txn, right_table_.get(),
             tile_group_size * right_table_tile_group_count, false);
+        }else {
+          ExecutorTestsUtil::PopulateTable(
+            txn, right_table_.get(), tile_group_size * right_table_tile_group_count,
+            false, false, false);
+        }
 
         /********Checking populate Correctness********/
         for (size_t i = 0; i < left_table_->GetTileGroupCount() &&
@@ -740,11 +754,11 @@ namespace peloton {
       }
     }
 
-    /*
+
 TEST_F(ExchangeHashJoinTests, BasicTest) {
 // Go over all join algorithms
 BuildTestTableUtil join_test;
-join_test.CreateTestTable();
+join_test.CreateTestTable(5, 3, 2, false);
 
 for (auto join_algorithm : join_algorithms) {
   LOG_INFO("JOIN ALGORITHM :: %s",
@@ -754,10 +768,11 @@ for (auto join_algorithm : join_algorithms) {
 }
 }
 
+
 TEST_F(ExchangeHashJoinTests, EmptyTablesTest) {
 // Go over all join algorithms
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable();
+  join_test.CreateTestTable(5, 3, 2, false);
 for (auto join_algorithm : join_algorithms) {
   LOG_INFO("JOIN ALGORITHM :: %s",
            PlanNodeTypeToString(join_algorithm).c_str());
@@ -768,7 +783,7 @@ for (auto join_algorithm : join_algorithms) {
 
 TEST_F(ExchangeHashJoinTests, JoinTypesTest) {
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable();
+  join_test.CreateTestTable(5, 3, 2, false);
 // Go over all join algorithms
 
 for (auto join_algorithm : join_algorithms) {
@@ -787,7 +802,7 @@ for (auto join_algorithm : join_algorithms) {
     TEST_F(ExchangeHashJoinTests, ComplicatedTest) {
       // Go over all join algorithms
       BuildTestTableUtil join_test;
-      join_test.CreateTestTable();
+      join_test.CreateTestTable(5, 3, 2, false);
       for (auto join_algorithm : join_algorithms) {
         LOG_INFO("JOIN ALGORITHM :: %s",
                  PlanNodeTypeToString(join_algorithm).c_str());
@@ -803,7 +818,7 @@ for (auto join_algorithm : join_algorithms) {
 
 TEST_F(ExchangeHashJoinTests, LeftTableEmptyTest) {
   BuildTestTableUtil join_test;
-        join_test.CreateTestTable();
+        join_test.CreateTestTable(5, 3, 2, false);
   // Go over all join algorithms
   for (auto join_algorithm : join_algorithms) {
     printf("JOIN ALGORITHM :: %s",
@@ -823,7 +838,7 @@ TEST_F(ExchangeHashJoinTests, LeftTableEmptyTest) {
 
 TEST_F(ExchangeHashJoinTests, RightTableEmptyTest) {
   BuildTestTableUtil join_test;
-          join_test.CreateTestTable();
+          join_test.CreateTestTable(5, 3, 2, false);
   // Go over all join algorithms
   for (auto join_algorithm : join_algorithms) {
     LOG_INFO("JOIN ALGORITHM :: %s",
@@ -841,7 +856,7 @@ TEST_F(ExchangeHashJoinTests, RightTableEmptyTest) {
 TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
   oid_t join_test_types = 1;
   BuildTestTableUtil join_test;
-          join_test.CreateTestTable();
+          join_test.CreateTestTable(5, 3, 2, false);
   // Go over all join test types
   for (oid_t join_test_type = 0; join_test_type < join_test_types;
        join_test_type++) {
@@ -860,13 +875,13 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
     }
   }
 }
-*/
+
 
 
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable(1000, 60, 25);
+  join_test.CreateTestTable(1000, 60, 25, true);
 
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest, true, 10);
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 10);
@@ -874,6 +889,7 @@ TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_OUTER, LargeTableCorrectnessTest, true, 10);
 
 }
+
 
   /*
 TEST_F(ExchangeHashJoinTests, SpeedTest) {
