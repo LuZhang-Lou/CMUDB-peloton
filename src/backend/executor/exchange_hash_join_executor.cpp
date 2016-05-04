@@ -351,7 +351,7 @@ namespace executor {
 //          printf("curt_left_matching_idx : %lu\n", curt_left_matching_idx);
           continue;
         }
-        printf("availble curt_left_matching_idx : %lu\n", curt_left_matching_idx);
+//        printf("availble curt_left_matching_idx : %lu\n", curt_left_matching_idx);
 
         std::unique_ptr<LogicalTile> output_tile(nullptr);
         auto left_tile = left_result_tiles_[curt_left_matching_idx ].get();
@@ -393,9 +393,9 @@ namespace executor {
  */
     //todo: parallel real outer join (not empty right child)
     bool ExchangeHashJoinExecutor::BuildRightJoinOutput() {
-      printf("ExchangeHashJoinExecutor::BuildRightJoinOutput called.\n");
+//      printf("ExchangeHashJoinExecutor::BuildRightJoinOutput called.\n");
       auto curt_right_matching_idx = atomic_right_matching_idx.fetch_add(0);
-      printf("curt_right_matching_idx :%lu, exhj_no_matching_right_row_sets_: %lu\n", curt_right_matching_idx, exhj_no_matching_right_row_sets_.size());
+//      printf("curt_right_matching_idx :%lu, exhj_no_matching_right_row_sets_: %lu\n", curt_right_matching_idx, exhj_no_matching_right_row_sets_.size());
       while (curt_right_matching_idx  < exhj_no_matching_right_row_sets_.size()) {
         if (exhj_no_matching_right_row_sets_[curt_right_matching_idx ].Empty()) {
           curt_right_matching_idx = atomic_right_matching_idx.fetch_add(1);
