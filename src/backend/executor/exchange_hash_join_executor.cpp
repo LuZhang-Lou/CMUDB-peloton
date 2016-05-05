@@ -108,8 +108,8 @@ namespace executor {
       // calling this function.
 
 //      LOG_INFO("Probe Task picked up \n");
-      printf("Probe Task picked up \n");
-      printf("GetTupleCount: %lu\n", left_result_tiles_.back()->GetTupleCount());
+//      printf("Probe Task picked up \n");
+//      printf("GetTupleCount: %lu\n", left_result_tiles_.back()->GetTupleCount());
 
       auto &hash_table = hash_executor_->GetHashTable();
       auto &hashed_col_ids = hash_executor_->GetHashKeyIds();
