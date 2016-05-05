@@ -895,7 +895,7 @@ TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
 
 TEST_F(ExchangeHashJoinTests, SpeedTest) {
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable(100000, 5000, 2000, false);
+  join_test.CreateTestTable(10000, 8000, 5000, false);
   printf("=================PLAN_NODE_TYPE_HASH_JOIN\n");
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, SPEED_TEST);
   printf("=================PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, 50\n");

@@ -69,6 +69,9 @@ namespace executor {
 
 
     void ExchangeHashJoinExecutor::GetRightHashTable(Barrier * barrier){
+
+      const auto start = std::chrono::system_clock::now();
+
       printf("Build Right Child Hash Table Task picked up \n");
       while (children_[1]->Execute()) {
 //        printf("get one right child\n");
@@ -78,9 +81,18 @@ namespace executor {
       printf("hash_table size: %lu\n", hash_executor_->GetHashTable().size());
       printf("right result tiles size: %lu\n", right_result_tiles_.size());
       barrier->Release();
+
+
+      const auto end = std::chrono::system_clock::now();
+      const std::chrono::duration<double> diff = end-start;
+      const double ms = diff.count()*1000;
+      printf("Get Right Hash Table takes %lf ms\n", ms);
+
     }
 
     void ExchangeHashJoinExecutor::GetLeftScanResult(Barrier * barrier){
+
+      const auto start = std::chrono::system_clock::now();
       printf("Build Left Child Scan Task picked up \n");
       while(children_[0]->Execute()){
         BufferLeftTile(children_[0]->GetOutput());
@@ -92,6 +104,10 @@ namespace executor {
         printf("left_result_tiles.size():%lu, tuple num per tile:%lu\n", left_result_tiles_.size(), left_result_tiles_.back().get()->GetTupleCount());
       }
       barrier->Release();
+      const auto end = std::chrono::system_clock::now();
+      const std::chrono::duration<double> diff = end-start;
+      const double ms = diff.count()*1000;
+      printf("Get Left Scan takes %lf ms\n", ms);
     }
 
 
