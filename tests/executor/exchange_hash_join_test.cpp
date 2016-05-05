@@ -274,8 +274,8 @@ namespace peloton {
       } else if (join_test_type == LEFT_TABLE_EMPTY) {
         ExpectEmptyTileResult(&left_table_scan_executor);
       } else if (join_test_type == RIGHT_TABLE_EMPTY) {
-//    if (join_type == JOIN_TYPE_INNER || join_type == JOIN_TYPE_RIGHT) {
-        if ((join_type == JOIN_TYPE_INNER || join_type == JOIN_TYPE_RIGHT) && (join_algorithm != PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN))  {
+    if (join_type == JOIN_TYPE_INNER || join_type == JOIN_TYPE_RIGHT) {
+//        if ((join_type == JOIN_TYPE_INNER || join_type == JOIN_TYPE_RIGHT) && (join_algorithm != PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN))  {
           ExpectMoreThanOneTileResults(&left_table_scan_executor,
                                        left_table_logical_tile_ptrs);
         } else {
@@ -759,7 +759,17 @@ namespace peloton {
         }
       }
     }
-/*
+
+
+              //////////////////////////////////////////////////
+              //                                              //
+              //                                              //
+              //                    Tests                     //
+              //                                              //
+              //////////////////////////////////////////////////
+
+
+    /*
 TEST_F(ExchangeHashJoinTests, BasicTest) {
 // Go over all join algorithms
 BuildTestTableUtil join_test;
@@ -783,7 +793,7 @@ for (auto join_algorithm : join_algorithms) {
   join_test.ExecuteJoinTest(join_algorithm, JOIN_TYPE_INNER, BOTH_TABLES_EMPTY);
 }
 }
-*/
+
 
 TEST_F(ExchangeHashJoinTests, JoinTypesTest) {
   BuildTestTableUtil join_test;
@@ -802,7 +812,7 @@ for (auto join_algorithm : join_algorithms) {
 }
 }
 
-/*
+
     TEST_F(ExchangeHashJoinTests, ComplicatedTest) {
       // Go over all join algorithms
       BuildTestTableUtil join_test;
@@ -839,6 +849,7 @@ TEST_F(ExchangeHashJoinTests, LeftTableEmptyTest) {
 
   }
 }
+
 TEST_F(ExchangeHashJoinTests, RightTableEmptyTest) {
   BuildTestTableUtil join_test;
           join_test.CreateTestTable(5, 3, 2, false);
@@ -854,7 +865,6 @@ TEST_F(ExchangeHashJoinTests, RightTableEmptyTest) {
     }
   }
 }
-
 
 TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
   oid_t join_test_types = 1;
@@ -878,17 +888,20 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
     }
   }
 }
+*/
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
   join_test.CreateTestTable(1000, 60, 25, true);
 
+  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest, true, 100);
 //  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 100);
 //  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_LEFT, LargeTableCorrectnessTest, true, 100);
 //  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_OUTER, LargeTableCorrectnessTest, true, 100);
 
 }
+/*
 
 TEST_F(ExchangeHashJoinTests, SpeedTest) {
   BuildTestTableUtil join_test;
