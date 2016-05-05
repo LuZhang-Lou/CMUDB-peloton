@@ -70,26 +70,62 @@ namespace peloton {
      */
     class Barrier {
     public:
+      thread_no total_;
       Barrier(thread_no total): total_(total) { }
       void Release() {
         std::lock_guard<std::mutex> lock(mutex_);
         ++count_;
         assert(count_<=total_);
-        if(count_==total_)
+        printf("Release.....\n");
+        if(count_==total_){
           cv_.notify_one();
+        }
       }
+      Barrier(): total_(0){}
       void Wait() {
         std::unique_lock<std::mutex> lock(mutex_);
         while(count_<total_)
           cv_.wait(lock);
       }
-    private:
+    protected:
       // total number of worker threads
-      const thread_no total_;
       std::mutex mutex_;
       std::condition_variable cv_;
       size_t count_ = 0;
     };
+
+    class PesudoBarrier{
+    public:
+      void Release() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        ++count_;
+        assert(count_<=total_);
+        if(count_==total_){
+          done = true;
+        }
+      }
+      PesudoBarrier(): total_(0){}
+      void SetTotal(thread_no new_total){
+        total_ = new_total;
+      }
+      bool IsDone(){
+        return done;
+      }
+      bool IsNoNeedToDo(){
+        return no_need_to_do_;
+      }
+      void SetNeedToDo(bool value){
+        no_need_to_do_ = value;
+      }
+    private:
+      // total number of worker threads
+      thread_no total_;
+      bool done = false;
+      std::mutex mutex_;
+      size_t count_ = 0;
+      bool no_need_to_do_ = false;
+    };
+
 
 
 
@@ -114,7 +150,8 @@ namespace peloton {
       void GetRightHashTable(Barrier * barrier);
       void GetLeftScanResult(Barrier * barrier);
 
-      void Probe(std::atomic<thread_no> *no, Barrier *barrier) ;
+//      void Probe(std::atomic<thread_no> *no, Barrier *barrier) ;
+      void Probe(std::atomic<thread_no> *no, PesudoBarrier *barrier) ;
       void UpdateLeftJoinRowSets();
       void UpdateRightJoinRowSets();
 
@@ -160,6 +197,7 @@ namespace peloton {
 
       std::chrono::time_point<std::chrono::system_clock> main_start;
       std::chrono::time_point<std::chrono::system_clock> main_end;
+      PesudoBarrier probe_barrier_;
 
       protected:
       bool DInit();

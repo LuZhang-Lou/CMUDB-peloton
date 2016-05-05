@@ -96,7 +96,7 @@ namespace executor {
 
 
     void ExchangeHashJoinExecutor::Probe(std::atomic<thread_no> *no,
-                                         Barrier *barrier) {
+                                         PesudoBarrier *barrier) {
 
       const auto start = std::chrono::system_clock::now();
 
@@ -284,6 +284,9 @@ namespace executor {
 
           // partition sub tasks
           size_t left_child_size = left_result_tiles_.size();
+          if (left_child_size == 0){
+            probe_barrier_.SetNeedToDo(true);
+          }
           size_t partition_number = left_child_size / SIZE_PER_PARTITION;
           if (left_child_size % SIZE_PER_PARTITION != 0) {
             ++partition_number;
@@ -293,10 +296,11 @@ namespace executor {
 
           // sub tasks begin
           std::atomic<thread_no> no(0);
-          Barrier probe_barrier(partition_number);
+//          Barrier probe_barrier(partition_number);
+          probe_barrier_.SetTotal(partition_number);
           std::function<void()> probe_worker =
             std::bind(&ExchangeHashJoinExecutor::Probe, this,
-                      &no, &probe_barrier);
+                      &no, &probe_barrier_);
 //        LaunchWorkerThreads(partition_number - 1, probe_worker);
           LaunchWorkerThreads(partition_number, probe_worker);
 
@@ -305,7 +309,7 @@ namespace executor {
           // todo: consider alternatives: main thread push result on by on
 //        Probe(&no, &probe_barrier);
 
-          probe_barrier.Wait();
+//          probe_barrier.Wait();
           prepare_children_ = true;
         }
 
@@ -319,7 +323,11 @@ namespace executor {
           SetOutput(output_tile);
           return true;
         } else {
-
+//          if (no_need_to_probe_ == false &&
+          if (probe_barrier_.IsNoNeedToDo() == false &&
+              probe_barrier_.IsDone() == false){
+            continue;
+          }
           main_end = std::chrono::system_clock::now();
           const std::chrono::duration<double> diff = main_end - main_start;
           const double ms = diff.count()*1000;

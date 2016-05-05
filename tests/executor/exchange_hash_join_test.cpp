@@ -758,7 +758,6 @@ namespace peloton {
     }
 
 
-    /*
 TEST_F(ExchangeHashJoinTests, BasicTest) {
 // Go over all join algorithms
 BuildTestTableUtil join_test;
@@ -771,8 +770,6 @@ for (auto join_algorithm : join_algorithms) {
   join_test.ExecuteJoinTest(join_algorithm, JOIN_TYPE_OUTER, BASIC_TEST);
 }
 }
-
-
 TEST_F(ExchangeHashJoinTests, EmptyTablesTest) {
 // Go over all join algorithms
   BuildTestTableUtil join_test;
@@ -881,20 +878,18 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
 }
 
 
-
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable(1000, 5000, 2000, true);
+  join_test.CreateTestTable(1000, 500, 200, false);
 
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest, true, 100);
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 100);
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_LEFT, LargeTableCorrectnessTest, true, 100);
-  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_OUTER, LargeTableCorrectnessTest, true, 100);
+//  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_RIGHT, LargeTableCorrectnessTest, true, 100);
+//  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_LEFT, LargeTableCorrectnessTest, true, 100);
+//  join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_OUTER, LargeTableCorrectnessTest, true, 100);
 
 }
-
-*/
+/*
 
 
 
@@ -914,7 +909,7 @@ TEST_F(ExchangeHashJoinTests, SpeedTest) {
   printf("=================PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, 250\n");
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, SPEED_TEST, true, 250);
 }
-
+*/
 
   }  // namespace test
 }  // namespace peloton
