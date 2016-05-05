@@ -30,13 +30,30 @@
 namespace peloton {
 namespace executor {
 
+
+
+typedef std::uint_least32_t thread_no;
+
+
+
 class ExchangeHashJoinExecutor : public AbstractJoinExecutor, public AbstractExchangeExecutor {
       ExchangeHashJoinExecutor(const ExchangeHashJoinExecutor &) = delete;
       ExchangeHashJoinExecutor &operator=(const ExchangeHashJoinExecutor &) = delete;
 
       public:
+      std::atomic<thread_no> left_tile_cnt;
+      std::atomic<thread_no> left_tile_cnt_done;
       explicit ExchangeHashJoinExecutor(const planner::AbstractPlan *node,
                                         ExecutorContext *executor_context);
+      boost::lockfree::queue<LogicalTile *, boost::lockfree::capacity<60000>> lockfree_buffered_output_tiles;
+
+
+      static void LaunchWorkerThreads(std::function<void()> function){
+        ThreadManager &tm = ThreadManager::GetInstance();
+          tm.AddTask(function);
+      }
+
+      void Probe( size_t left_tile_idx);
 
  protected:
   bool DInit();

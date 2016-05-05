@@ -42,12 +42,88 @@ bool ExchangeHashJoinExecutor::DInit() {
 
 //  hash_executor_ = reinterpret_cast<HashExecutor *>(children_[1]);
   hash_executor_ = reinterpret_cast<ExchangeHashExecutor *>(children_[1]);
-
-  if (left_child_done_){
-    printf("??????\n");
-  }
+  left_tile_cnt = 0;
+  left_tile_cnt_done = 0;
 
   return true;
+}
+
+
+void ExchangeHashJoinExecutor::Probe(size_t left_tile_idx){
+  printf("pick..up..%lu\n", left_tile_idx);
+  LogicalTile *left_tile = left_result_tiles_[left_tile_idx].get();
+  //===------------------------------------------------------------------===//
+  // Build Join Tile
+  //===------------------------------------------------------------------===//
+
+  // Get the hash table from the hash executor
+  auto &hash_table = hash_executor_->GetHashTable();
+  auto &hashed_col_ids = hash_executor_->GetHashKeyIds();
+
+  oid_t prev_tile = INVALID_OID;
+  std::unique_ptr<LogicalTile> output_tile;
+  LogicalTile::PositionListsBuilder pos_lists_builder;
+
+  // Go over the left tile
+  for (auto left_tile_itr : *left_tile) {
+    const expression::ContainerTuple<executor::LogicalTile> left_tuple(
+        left_tile, left_tile_itr, &hashed_col_ids);
+
+
+    executor::ExchangeHashExecutor::MapValueType right_tuples;
+    bool if_match = hash_table.find(left_tuple, right_tuples);
+
+    if (if_match){
+
+      RecordMatchedLeftRow(left_tile_idx, left_tile_itr);
+
+      // Go over the matching right tuples
+      for (auto &location : right_tuples) {
+        // Check if we got a new right tile itr
+        if (prev_tile != location.first) {
+          // Check if we have any join tuples
+          if (pos_lists_builder.Size() > 0) {
+            LOG_TRACE("Join tile size : %lu \n", pos_lists_builder.Size());
+            output_tile->SetPositionListsAndVisibility(
+                pos_lists_builder.Release());
+            lockfree_buffered_output_tiles.push(output_tile.release());
+
+          }
+
+          // Get the logical tile from right child
+          LogicalTile *right_tile = right_result_tiles_[location.first].get();
+
+          // Build output logical tile
+          output_tile = BuildOutputLogicalTile(left_tile, right_tile);
+
+          // Build position lists
+          pos_lists_builder =
+              LogicalTile::PositionListsBuilder(left_tile, right_tile);
+
+          pos_lists_builder.SetRightSource(
+              &right_result_tiles_[location.first]->GetPositionLists());
+        }
+
+        // Add join tuple
+        pos_lists_builder.AddRow(left_tile_itr, location.second);
+
+        RecordMatchedRightRow(location.first, location.second);
+
+        // Cache prev logical tile itr
+        prev_tile = location.first;
+      }
+    }
+  }// end of go over the left tile ..
+
+  // Check if we have any join tuples
+  if (pos_lists_builder.Size() > 0) {
+    LOG_TRACE("Join tile size : %lu \n", pos_lists_builder.Size());
+    output_tile->SetPositionListsAndVisibility(pos_lists_builder.Release());
+    lockfree_buffered_output_tiles.push(output_tile.release());
+  }
+  int tmp = left_tile_cnt_done++;
+
+  printf("left_tile_cnt_done:%d\n", tmp);
 }
 
 /**
@@ -56,27 +132,37 @@ bool ExchangeHashJoinExecutor::DInit() {
  * @return true on success, false otherwise.
  */
 bool ExchangeHashJoinExecutor::DExecute() {
-  printf("********** Exchange Hash Join executor :: 2 children \n");
+//  printf("********** Exchange Hash Join executor :: 2 children \n");
 
-  // Loop until we have non-empty result tile or exit
   for (;;) {
+
+
+
     // Check if we have any buffered output tiles
-    if (buffered_output_tiles.empty() == false) {
-      auto output_tile = buffered_output_tiles.front();
+    if (lockfree_buffered_output_tiles.empty() == false) {
+      LogicalTile *output_tile = nullptr;
+      lockfree_buffered_output_tiles.pop(output_tile);
       SetOutput(output_tile);
-      buffered_output_tiles.pop_front();
       return true;
+    } else if (left_child_done_){
+//      int left_tile_cnt_tmp = left_tile_cnt;
+//      int left_tile_cnt_done_tmp = left_tile_cnt_done;
+//      printf("left_tile_cnt_tmp : %d, left_tile_cnt_done_tmp : %d\n", left_tile_cnt_tmp, left_tile_cnt_done_tmp);
+      assert(left_tile_cnt >= left_tile_cnt_done);
+      if ((!left_child_done_) || (left_child_done_ && left_tile_cnt > left_tile_cnt_done )){
+          continue;
+//        continue;
+//        sleep(5);
+//        return false;
+      }else if (left_child_done_ && left_tile_cnt == left_tile_cnt_done){
+        return BuildOuterJoinOutput();
+      }
     }
 
-    // Build outer join output when done
-    if (left_child_done_ == true) {
-      printf("zoula..\n");
-      return BuildOuterJoinOutput();
-    }
 
     //===------------------------------------------------------------------===//
     // Pick right and left tiles
-    //===------------------------------------------------------------------===//
+    //===---------------------------------------------------------------===//
 
     // Get all the tiles from RIGHT child
     if (right_child_done_ == false) {
@@ -84,11 +170,12 @@ bool ExchangeHashJoinExecutor::DExecute() {
         BufferRightTile(children_[1]->GetOutput());
       }
       right_child_done_ = true;
+      printf("hash_table's size:%lu\n", hash_executor_->GetHashTable().size());
     }
 
     // Get next tile from LEFT child
     if (children_[0]->Execute() == false) {
-      printf("Did not get left tile \n");
+      printf("!!!!!!!!!Did not get left tile \n");
       left_child_done_ = true;
       continue;
     }
@@ -101,91 +188,31 @@ bool ExchangeHashJoinExecutor::DExecute() {
       return BuildOuterJoinOutput();
     }
 
-    LogicalTile *left_tile = left_result_tiles_.back().get();
+    size_t left_tile_idx = left_tile_cnt++;
 
-    //===------------------------------------------------------------------===//
-    // Build Join Tile
-    //===------------------------------------------------------------------===//
+    std::function<void()> probe_worker =
+                std::bind(&ExchangeHashJoinExecutor::Probe, this, left_tile_idx);
+    LaunchWorkerThreads( probe_worker);
 
-    // Get the hash table from the hash executor
-    auto &hash_table = hash_executor_->GetHashTable();
-    auto &hashed_col_ids = hash_executor_->GetHashKeyIds();
-
-    oid_t prev_tile = INVALID_OID;
-    std::unique_ptr<LogicalTile> output_tile;
-    LogicalTile::PositionListsBuilder pos_lists_builder;
-
-    // Go over the left tile
-    for (auto left_tile_itr : *left_tile) {
-      const expression::ContainerTuple<executor::LogicalTile> left_tuple(
-          left_tile, left_tile_itr, &hashed_col_ids);
-
-      // Find matching tuples in the hash table built on top of the right table
-
-//      auto right_tuples = hash_table.find(left_tuple);
-      executor::ExchangeHashExecutor::MapValueType right_tuples;
-      bool if_match = hash_table.find(left_tuple, right_tuples);
-
-//      if (right_tuples != hash_table.end()) {
-      if (if_match){
-
-        RecordMatchedLeftRow(left_result_tiles_.size() - 1, left_tile_itr);
-
-        // Go over the matching right tuples
-//        for (auto &location : right_tuples->second) {
-        for (auto &location : right_tuples) {
-          // Check if we got a new right tile itr
-          if (prev_tile != location.first) {
-            // Check if we have any join tuples
-            if (pos_lists_builder.Size() > 0) {
-              LOG_TRACE("Join tile size : %lu \n", pos_lists_builder.Size());
-              output_tile->SetPositionListsAndVisibility(
-                  pos_lists_builder.Release());
-              buffered_output_tiles.push_back(output_tile.release());
-            }
-
-            // Get the logical tile from right child
-            LogicalTile *right_tile = right_result_tiles_[location.first].get();
-
-            // Build output logical tile
-            output_tile = BuildOutputLogicalTile(left_tile, right_tile);
-
-            // Build position lists
-            pos_lists_builder =
-                LogicalTile::PositionListsBuilder(left_tile, right_tile);
-
-            pos_lists_builder.SetRightSource(
-                &right_result_tiles_[location.first]->GetPositionLists());
-          }
-
-          // Add join tuple
-          pos_lists_builder.AddRow(left_tile_itr, location.second);
-
-          RecordMatchedRightRow(location.first, location.second);
-
-          // Cache prev logical tile itr
-          prev_tile = location.first;
-        }
-      }
-    }
-
-    // Check if we have any join tuples
-    if (pos_lists_builder.Size() > 0) {
-      LOG_TRACE("Join tile size : %lu \n", pos_lists_builder.Size());
-      output_tile->SetPositionListsAndVisibility(pos_lists_builder.Release());
-      buffered_output_tiles.push_back(output_tile.release());
-    }
 
     // Check if we have any buffered output tiles
-    if (buffered_output_tiles.empty() == false) {
-      auto output_tile = buffered_output_tiles.front();
+    if (lockfree_buffered_output_tiles.empty() == false) {
+      LogicalTile *output_tile = nullptr;
+      lockfree_buffered_output_tiles.pop(output_tile);
       SetOutput(output_tile);
-      buffered_output_tiles.pop_front();
-
       return true;
     } else {
-      // Try again
-      continue;
+      assert(left_tile_cnt >= left_tile_cnt_done);
+//      int left_tile_cnt_tmp = left_tile_cnt;
+//      int left_tile_cnt_done_tmp = left_tile_cnt_done;
+//      printf("left_tile_cnt_tmp : %d, left_tile_cnt_done_tmp : %d\n", left_tile_cnt_tmp, left_tile_cnt_done_tmp);
+      if ((!left_child_done_) || (left_child_done_ && left_tile_cnt > left_tile_cnt_done )){
+//        continue;
+//        sleep(5);
+//        return false;
+      }else if (left_child_done_ && left_tile_cnt == left_tile_cnt_done){
+        return BuildOuterJoinOutput();
+      }
     }
   }
 }

@@ -275,6 +275,7 @@ std::vector<std::vector<oid_t>> AbstractJoinExecutor::BuildPostitionLists(
  */
 void AbstractJoinExecutor::BufferLeftTile(LogicalTile *left_tile) {
   assert(join_type_ != JOIN_TYPE_INVALID);
+  printf("emplace..\n");
   left_result_tiles_.emplace_back(left_tile);
   printf("buffer left\n");
   switch (join_type_) {
