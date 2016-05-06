@@ -892,7 +892,7 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable(1000, 60, 25, true);
+  join_test.CreateTestTable(100000, 200, 150, false);
 
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest, true, 100);

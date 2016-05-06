@@ -76,10 +76,15 @@ bool HashJoinExecutor::DExecute() {
 
     // Get all the tiles from RIGHT child
     if (right_child_done_ == false) {
+      const auto start_build = std::chrono::system_clock::now();
       while (children_[1]->Execute()) {
         BufferRightTile(children_[1]->GetOutput());
       }
       right_child_done_ = true;
+      const auto end_build = std::chrono::system_clock::now();
+      const std::chrono::duration<double> diff = end_build-start_build;
+      const double ms = diff.count()*1000;
+      printf("Hash takes %lf ms\n", ms);
     }
 
     // Get next tile from LEFT child

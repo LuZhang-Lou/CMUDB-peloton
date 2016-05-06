@@ -43,6 +43,7 @@ class ExchangeHashJoinExecutor : public AbstractJoinExecutor, public AbstractExc
       public:
       std::atomic<thread_no> left_tile_cnt;
       std::atomic<thread_no> left_tile_cnt_done;
+
       explicit ExchangeHashJoinExecutor(const planner::AbstractPlan *node,
                                         ExecutorContext *executor_context);
       boost::lockfree::queue<LogicalTile *, boost::lockfree::capacity<60000>> lockfree_buffered_output_tiles;

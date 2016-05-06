@@ -50,7 +50,7 @@ bool ExchangeHashJoinExecutor::DInit() {
 
 
 void ExchangeHashJoinExecutor::Probe(size_t left_tile_idx){
-  printf("pick..up..%lu\n", left_tile_idx);
+//  printf("pick..up..%lu\n", left_tile_idx);
   LogicalTile *left_tile = left_result_tiles_[left_tile_idx].get();
   //===------------------------------------------------------------------===//
   // Build Join Tile
@@ -121,9 +121,10 @@ void ExchangeHashJoinExecutor::Probe(size_t left_tile_idx){
     output_tile->SetPositionListsAndVisibility(pos_lists_builder.Release());
     lockfree_buffered_output_tiles.push(output_tile.release());
   }
-  int tmp = left_tile_cnt_done++;
+//  int tmp = left_tile_cnt_done++;
+  left_tile_cnt_done++;
 
-  printf("left_tile_cnt_done:%d\n", tmp);
+//  printf("left_tile_cnt_done:%d\n", tmp);
 }
 
 /**
@@ -166,11 +167,17 @@ bool ExchangeHashJoinExecutor::DExecute() {
 
     // Get all the tiles from RIGHT child
     if (right_child_done_ == false) {
+      const auto start_build = std::chrono::system_clock::now();
       while (children_[1]->Execute()) {
         BufferRightTile(children_[1]->GetOutput());
       }
       right_child_done_ = true;
       printf("hash_table's size:%lu\n", hash_executor_->GetHashTable().size());
+
+      const auto end_build = std::chrono::system_clock::now();
+      const std::chrono::duration<double> diff = end_build-start_build;
+      const double ms = diff.count()*1000;
+      printf("ExchangeHash takes %lf ms\n", ms);
     }
 
     // Get next tile from LEFT child
@@ -181,7 +188,7 @@ bool ExchangeHashJoinExecutor::DExecute() {
     }
 
     BufferLeftTile(children_[0]->GetOutput());
-    printf("Got left tile \n");
+//    printf("Got left tile \n");
 
     if (right_result_tiles_.size() == 0) {
       printf("Did not get any right tiles \n");
