@@ -74,7 +74,7 @@ namespace peloton {
 
         auto txn = txn_manager.BeginTransaction();
         left_table_.reset(
-          ExecutorTestsUtil::CreateTable(tile_group_size));
+          ExecutorTestsUtil::CreateTable(tile_group_size, false));
 
          if (is_large_para_test){
            ExecutorTestsUtil::PopulateTableForParallelTest(
@@ -87,7 +87,7 @@ namespace peloton {
          }
 
         right_table_.reset(
-          ExecutorTestsUtil::CreateTable(tile_group_size));
+          ExecutorTestsUtil::CreateTable(tile_group_size, false));
 
         if (is_large_para_test){
           ExecutorTestsUtil::PopulateTableForParallelTest(
