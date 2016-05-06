@@ -18,7 +18,7 @@
 #include "backend/executor/abstract_join_executor.h"
 //#include "backend/planner/exchange_hash_join_plan.h"
 #include "backend/planner/hash_join_plan.h"
-//#include "backend/executor/hash_executor.h"
+#include "backend/executor/hash_executor.h"
 #include "backend/executor/exchange_hash_executor.h"
 //#include "backend/executor/abstract_parallel_executor.h"
 #include "backend/executor/abstract_exchange_executor.h"
@@ -62,8 +62,8 @@ class ExchangeHashJoinExecutor : public AbstractJoinExecutor, public AbstractExc
   bool DExecute();
 
  private:
-//  HashExecutor *hash_executor_ = nullptr;
-  ExchangeHashExecutor *hash_executor_ = nullptr;
+  HashExecutor *hash_executor_ = nullptr;
+//  ExchangeHashExecutor *hash_executor_ = nullptr;
 
   bool hashed_ = false;
 

@@ -40,8 +40,8 @@ bool ExchangeHashJoinExecutor::DInit() {
 
   assert(children_[1]->GetRawNode()->GetPlanNodeType() == PLAN_NODE_TYPE_HASH);
 
-//  hash_executor_ = reinterpret_cast<HashExecutor *>(children_[1]);
-  hash_executor_ = reinterpret_cast<ExchangeHashExecutor *>(children_[1]);
+  hash_executor_ = reinterpret_cast<HashExecutor *>(children_[1]);
+//  hash_executor_ = reinterpret_cast<ExchangeHashExecutor *>(children_[1]);
   left_tile_cnt = 0;
   left_tile_cnt_done = 0;
 
@@ -70,15 +70,18 @@ void ExchangeHashJoinExecutor::Probe(size_t left_tile_idx){
         left_tile, left_tile_itr, &hashed_col_ids);
 
 
-    executor::ExchangeHashExecutor::MapValueType right_tuples;
-    bool if_match = hash_table.find(left_tuple, right_tuples);
+//    executor::ExchangeHashExecutor::MapValueType right_tuples;
+//    bool if_match = hash_table.find(left_tuple, right_tuples);
+    auto right_tuples = hash_table.find(left_tuple);
 
-    if (if_match){
+    //if (if_match){
+    if (right_tuples != hash_table.end()){
 
       RecordMatchedLeftRow(left_tile_idx, left_tile_itr);
 
       // Go over the matching right tuples
-      for (auto &location : right_tuples) {
+      //for (auto &location : right_tuples) {
+      for (auto & location : right_tuples->second){
         // Check if we got a new right tile itr
         if (prev_tile != location.first) {
           // Check if we have any join tuples

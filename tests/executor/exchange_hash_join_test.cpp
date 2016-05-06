@@ -415,15 +415,15 @@ namespace peloton {
           hash_keys.emplace_back(right_table_attr_1);
 
           // Create hash plan node
-          //planner::HashPlan hash_plan_node(hash_keys);
-          planner::ExchangeHashPlan exchange_hash_plan_node(hash_keys);
+          planner::HashPlan hash_plan_node(hash_keys);
+//          planner::ExchangeHashPlan exchange_hash_plan_node(hash_keys);
 
           // Construct the hash executor
-          executor::ExchangeHashExecutor parallel_hash_executor(&exchange_hash_plan_node, nullptr);
-          //executor::HashExecutor hash_executor(&hash_plan_node, nullptr);
+//          executor::ExchangeHashExecutor parallel_hash_executor(&exchange_hash_plan_node, nullptr);
+          executor::HashExecutor hash_executor(&hash_plan_node, nullptr);
 
           // Create hash join plan node.
-          //planner::HashJoinPlan hash_join_plan_node(join_type, std::move(predicate),
+//          planner::HashJoinPlan hash_join_plan_node(join_type, std::move(predicate),
 //                                                    std::move(projection), schema);
           planner::ExchangeHashJoinPlan exchange_hash_join_plan_node(join_type, std::move(predicate),
                                                     std::move(projection), schema);
@@ -434,9 +434,9 @@ namespace peloton {
 
           // Construct the executor tree
           exchange_hash_join_executor.AddChild(&left_table_scan_executor);
-          exchange_hash_join_executor.AddChild(&parallel_hash_executor);
+          exchange_hash_join_executor.AddChild(&hash_executor);
 
-          parallel_hash_executor.AddChild(&right_table_scan_executor);
+          hash_executor.AddChild(&right_table_scan_executor);
 
           if (set_workload) {
 //            exchange_hash_join_executor.SetTaskNumPerThread(workload);
@@ -892,7 +892,7 @@ TEST_F(ExchangeHashJoinTests, JoinPredicateTest) {
 TEST_F(ExchangeHashJoinTests, LargeTableCorrectnessTest) {
   // Go over all join algorithms
   BuildTestTableUtil join_test;
-  join_test.CreateTestTable(1000000, 100, 50, false);
+  join_test.CreateTestTable(1200000, 100, 50, false);
 
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_HASHJOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest);
   join_test.ExecuteJoinTest(PLAN_NODE_TYPE_EXCHANGE_HASH_JOIN, JOIN_TYPE_INNER, LargeTableCorrectnessTest, true, 100);
